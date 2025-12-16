@@ -412,6 +412,12 @@ export default function GameScreen() {
       return;
     }
 
+    const alreadyGuessed = gameState.currentGuesses.some(g => g.guess === guess);
+    if (alreadyGuessed) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
     const result = makeGuess(guess);
     setInputValue("");
 
