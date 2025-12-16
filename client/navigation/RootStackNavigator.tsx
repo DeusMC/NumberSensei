@@ -1,12 +1,17 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import MainTabNavigator from "@/navigation/MainTabNavigator";
-import ModalScreen from "@/screens/ModalScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
+import MainMenuScreen from "@/screens/MainMenuScreen";
+import GameScreen from "@/screens/GameScreen";
+import StatsScreen from "@/screens/StatsScreen";
+import SettingsScreen from "@/screens/SettingsScreen";
+
 export type RootStackParamList = {
-  Main: undefined;
-  Modal: undefined;
+  MainMenu: undefined;
+  Game: undefined;
+  Stats: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -17,17 +22,24 @@ export default function RootStackNavigator() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
-        name="Main"
-        component={MainTabNavigator}
+        name="MainMenu"
+        component={MainMenuScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Modal"
-        component={ModalScreen}
-        options={{
-          presentation: "modal",
-          headerTitle: "Modal",
-        }}
+        name="Game"
+        component={GameScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Stats"
+        component={StatsScreen}
+        options={{ headerTitle: "Statistics" }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerTitle: "Settings" }}
       />
     </Stack.Navigator>
   );
