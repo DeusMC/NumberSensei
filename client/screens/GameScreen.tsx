@@ -504,6 +504,7 @@ export default function GameScreen() {
     depth: "Depth",
     strategic: "Strategic",
     tactical: "Tactical",
+    deus: "Deus",
   };
 
   return (

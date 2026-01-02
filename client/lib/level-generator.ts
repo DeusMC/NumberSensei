@@ -6,6 +6,7 @@ const BASE_RANGES: Record<GameMode, { min: number; max: number }> = {
   depth: { min: 1, max: 16 },
   strategic: { min: 1, max: 8 },
   tactical: { min: 1, max: 20 },
+  deus: { min: 1, max: 100 },
 };
 
 const BASE_ATTEMPTS: Record<GameMode, number> = {
@@ -13,6 +14,7 @@ const BASE_ATTEMPTS: Record<GameMode, number> = {
   depth: 6,
   strategic: 4,
   tactical: 3,
+  deus: 7,
 };
 
 const TIME_LIMITS: Record<GameMode, number | null> = {
@@ -20,6 +22,7 @@ const TIME_LIMITS: Record<GameMode, number | null> = {
   depth: null,
   strategic: 60,
   tactical: 30,
+  deus: null,
 };
 
 const HINT_STYLES: Record<GameMode, LevelParams["hintStyle"]> = {
@@ -27,6 +30,7 @@ const HINT_STYLES: Record<GameMode, LevelParams["hintStyle"]> = {
   depth: "distance",
   strategic: "penalty",
   tactical: "hot_cold",
+  deus: "divine",
 };
 
 function calculateDifficultyScore(
@@ -139,8 +143,13 @@ export function generateLevel(
   const actualSeed = seed ?? Date.now() + levelNumber;
   const rng = new SeededRandom(actualSeed);
   
-  const gameMode = selectGameMode(levelNumber, skillMetrics, rng);
+  let gameMode = selectGameMode(levelNumber, skillMetrics, rng);
   
+  // Easter Egg: Deus Mode
+  if (rng.next() < 0.05) {
+    gameMode = "deus";
+  }
+
   const baseRange = BASE_RANGES[gameMode];
   const expansion = calculateRangeExpansion(levelNumber, skillMetrics);
   
@@ -233,6 +242,12 @@ export function getHint(
     case "penalty":
       const penaltyHint = attemptsLeft <= 2 ? "Critical! Limited attempts" : undefined;
       return { feedback, hint: penaltyHint, penalty: attemptsLeft <= 2 ? 1 : 0 };
+
+    case "divine":
+      const diff = Math.abs(target - guess);
+      const isMultiple = target % guess === 0 || guess % target === 0;
+      const hint = isMultiple ? "A divine multiple" : `Difference: ${diff}`;
+      return { feedback, hint };
       
     default:
       return { feedback };
@@ -249,6 +264,8 @@ export function getModeDescription(mode: GameMode): string {
       return "Think carefully. Penalties for running low on attempts.";
     case "tactical":
       return "Fast-paced action. Tight time limits and thermal hints.";
+    case "deus":
+      return "A mysterious challenge. Divine hints for the chosen one.";
   }
 }
 
@@ -262,5 +279,7 @@ export function getModeIcon(mode: GameMode): string {
       return "target";
     case "tactical":
       return "clock";
+    case "deus":
+      return "sun";
   }
 }

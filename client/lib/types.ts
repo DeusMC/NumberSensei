@@ -1,4 +1,4 @@
-export type GameMode = "classic" | "depth" | "strategic" | "tactical";
+export type GameMode = "classic" | "depth" | "strategic" | "tactical" | "deus";
 
 export interface LevelParams {
   seed: number;
@@ -9,7 +9,7 @@ export interface LevelParams {
   timeLimit: number | null;
   gameMode: GameMode;
   targetNumber: number;
-  hintStyle: "basic" | "distance" | "hot_cold" | "penalty";
+  hintStyle: "basic" | "distance" | "hot_cold" | "penalty" | "divine";
   difficultyScore: number;
 }
 
