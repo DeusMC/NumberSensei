@@ -472,6 +472,10 @@ export default function GameScreen() {
     if (lastResult?.won) {
       continueGame();
     } else {
+      // Don't auto-restart, just stay on the screen or handle as needed
+      // If we want them to be able to try again, we can call restartLevel()
+      // but the user says it restarts instead of showing lose screen.
+      // The modal IS the lose screen, so handleContinue is only called when they press a button.
       restartLevel();
     }
   };

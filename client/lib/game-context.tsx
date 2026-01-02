@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GameState,
   LevelParams,
@@ -8,6 +9,7 @@ import {
   SkillMetrics,
   GuessResult,
   PlayerProfile,
+  LevelParams as LevelType,
 } from "./types";
 import {
   createInitialStats,
@@ -15,8 +17,17 @@ import {
   updateStatsWithResult,
   calculateSkillMetrics,
   calculateLevelAccuracy,
+  calculateLevelAccuracy as calcAccuracy,
 } from "./skill-model";
 import { generateLevel, getHint } from "./level-generator";
+
+const STORAGE_KEYS = {
+  STATS: "brain_cubes_stats",
+  METRICS: "brain_cubes_metrics",
+  HISTORY: "brain_cubes_history",
+  PROFILE: "brain_cubes_profile",
+  LEVEL_NUMBER: "brain_cubes_level_number",
+};
 
 interface GameContextValue {
   gameState: GameState;
@@ -65,9 +76,55 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [levelHistory, setLevelHistory] = useState<LevelResult[]>([]);
   const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
   const [currentLevelNumber, setCurrentLevelNumber] = useState(1);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [stats, metrics, history, prof, levelNum] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.STATS),
+          AsyncStorage.getItem(STORAGE_KEYS.METRICS),
+          AsyncStorage.getItem(STORAGE_KEYS.HISTORY),
+          AsyncStorage.getItem(STORAGE_KEYS.PROFILE),
+          AsyncStorage.getItem(STORAGE_KEYS.LEVEL_NUMBER),
+        ]);
+
+        if (stats) setPlayerStats(JSON.parse(stats));
+        if (metrics) setSkillMetrics(JSON.parse(metrics));
+        if (history) setLevelHistory(JSON.parse(history));
+        if (prof) setProfile(JSON.parse(prof));
+        if (levelNum) setCurrentLevelNumber(parseInt(levelNum, 10));
+      } catch (error) {
+        console.error("Failed to load game data", error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Save data when it changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    const saveData = async () => {
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(playerStats)),
+          AsyncStorage.setItem(STORAGE_KEYS.METRICS, JSON.stringify(skillMetrics)),
+          AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(levelHistory)),
+          AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile)),
+          AsyncStorage.setItem(STORAGE_KEYS.LEVEL_NUMBER, currentLevelNumber.toString()),
+        ]);
+      } catch (error) {
+        console.error("Failed to save game data", error);
+      }
+    };
+    saveData();
+  }, [playerStats, skillMetrics, levelHistory, profile, currentLevelNumber, isLoaded]);
+
   useEffect(() => {
     if (gameState.isPlaying && !gameState.isPaused && gameState.startTime) {
       timerRef.current = setInterval(() => {
@@ -116,17 +173,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [skillMetrics]);
   
   const continueGame = useCallback(() => {
-    if (gameState.currentLevel) {
+    if (gameState.currentLevel && !gameState.isPlaying) {
       setGameState(prev => ({
         ...prev,
         isPlaying: true,
         isPaused: false,
         startTime: Date.now() - prev.elapsedTime * 1000,
       }));
-    } else {
+    } else if (!gameState.currentLevel) {
       startNewGame();
     }
-  }, [gameState.currentLevel, startNewGame]);
+  }, [gameState.currentLevel, gameState.isPlaying, startNewGame]);
   
   const completeLevel = useCallback((won: boolean) => {
     if (!gameState.currentLevel) return;
@@ -280,16 +337,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setProfile(prev => ({ ...prev, ...updates }));
   }, []);
   
-  const resetProgress = useCallback(() => {
-    setPlayerStats(createInitialStats());
-    setSkillMetrics(createInitialSkillMetrics());
-    setLevelHistory([]);
-    setCurrentLevelNumber(1);
-    setGameState(initialGameState);
-  }, []);
+  const resetProgress = async () => {
+    try {
+      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+      setPlayerStats(createInitialStats());
+      setSkillMetrics(createInitialSkillMetrics());
+      setLevelHistory([]);
+      setCurrentLevelNumber(1);
+      setGameState(initialGameState);
+    } catch (error) {
+      console.error("Failed to reset progress", error);
+    }
+  };
   
   const hasSavedGame = gameState.currentLevel !== null && !gameState.isPlaying;
   
+  if (!isLoaded) return null;
+
   return (
     <GameContext.Provider
       value={{
