@@ -361,7 +361,6 @@ export default function GameScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!gameState.isPlaying && gameState.currentLevel && !showCompleteModal) {
-        setShowCompleteModal(true);
         const won = gameState.currentGuesses.some((g) => g.feedback === "correct");
         setLastResult({
           won,
@@ -370,6 +369,7 @@ export default function GameScreen() {
           timeUsed: gameState.elapsedTime,
           targetNumber: gameState.currentLevel.targetNumber,
         });
+        setShowCompleteModal(true);
       }
     }, [gameState.isPlaying, gameState.currentLevel, showCompleteModal])
   );
